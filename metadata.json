@@ -1,0 +1,8 @@
+{
+  "name": "Bansify AI",
+  "description": "Calm, roomy Android AI chat and developer Studio UI prototype with Hinglish UX, multi-provider model catalog, and mock streaming.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bansify AI</string>
+    <string name="tagline">Thoughtful, fast, yours.</string>
+    <string name="made_in_india">Made in India</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="continue_as_guest">Continue as Guest</string>
+    <string name="skip">Skip</string>
+    <string name="continue_action">Continue</string>
+    <string name="start_action">Get started</string>
+    <string name="retry">Try again</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="rename">Rename</string>
+    <string name="new_chat">New chat</string>
+    <string name="search_placeholder">Search…</string>
+    <string name="offline_banner">You\'re offline — showing saved history</string>
+    <string name="chat_error_title">Couldn\'t get a response</string>
+    <string name="listening_label">Listening…</string>
+    <string name="ask_anything">Or ask anything</string>
+    <string name="see_all_models">View all models →</string>
+    <string name="models_title">Models</string>
+    <string name="history_title">History</string>
+    <string name="studio_title">Studio</string>
+    <string name="settings_title">Settings</string>
+    <string name="profile_title">Profile</string>
+    <string name="cd_open_drawer">Open menu</string>
+    <string name="cd_back">Navigate back</string>
+    <string name="cd_send_message">Send message</string>
+    <string name="cd_stop_streaming">Stop generating response</string>
+    <string name="cd_voice_input">Start voice input</string>
+    <string name="cd_attach_file">Attach photo or file</string>
+    <string name="cd_more_options">More options</string>
+    <string name="cd_bansify_logo">Bansify AI logo</string>
+</resources>

@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local configuration
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystores (debug.keystore is intentionally not committed)
+*.keystore
+*.jks
+
+# Outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Logs
+*.log
