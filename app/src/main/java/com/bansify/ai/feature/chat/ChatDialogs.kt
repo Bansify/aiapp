@@ -102,12 +102,12 @@ internal fun MessageOptionsSheet(
 ) {
     SheetScaffold(onDismiss = onDismiss, title = "Message options") {
         SheetActionRow(Icons.Rounded.ContentCopy, "Copy", null, onCopy)
-        SheetActionRow(Icons.Rounded.Share, "Share (Demo)", null, onShare)
+        SheetActionRow(Icons.Rounded.Share, "Share", null, onShare)
         SheetActionRow(Icons.Rounded.SelectAll, "Select text", null, onSelectText)
         if (message.role == MessageRole.ASSISTANT) {
             SheetActionRow(Icons.Rounded.Refresh, "Regenerate", null, onRegenerate)
         }
-        SheetActionRow(Icons.Rounded.Flag, "Report (Demo)", null, onReport)
+        SheetActionRow(Icons.Rounded.Flag, "Report", null, onReport)
     }
 }
 
@@ -277,14 +277,10 @@ internal fun MediaPreviewDialog(
 @Composable
 internal fun ChatOverflowMenu(
     expanded: Boolean,
-    offlineDemoMode: Boolean,
     onDismiss: () -> Unit,
-    onReplayDemo: () -> Unit,
     onClearChat: () -> Unit,
     onExportMarkdown: () -> Unit,
-    onShareLink: () -> Unit,
-    onToggleOffline: () -> Unit,
-    onSimulateError: () -> Unit
+    onShareLink: () -> Unit
 ) {
     DropdownMenu(
         expanded = expanded,
@@ -292,33 +288,16 @@ internal fun ChatOverflowMenu(
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         DropdownMenuItem(
-            text = { Text("Replay streaming (Demo)", style = BansifyTextStyles.Body) },
-            onClick = { onDismiss(); onReplayDemo() }
-        )
-        DropdownMenuItem(
             text = { Text("Clear chat", style = BansifyTextStyles.Body) },
             onClick = { onDismiss(); onClearChat() }
         )
         DropdownMenuItem(
-            text = { Text("Export Markdown (Demo)", style = BansifyTextStyles.Body) },
+            text = { Text("Export as Markdown", style = BansifyTextStyles.Body) },
             onClick = { onDismiss(); onExportMarkdown() }
         )
         DropdownMenuItem(
-            text = { Text("Share link (Soon)", style = BansifyTextStyles.Body) },
+            text = { Text("Share link (coming soon)", style = BansifyTextStyles.Body) },
             onClick = { onDismiss(); onShareLink() }
-        )
-        DropdownMenuItem(
-            text = {
-                Text(
-                    if (offlineDemoMode) "Go Online (Demo)" else "Offline banner (Demo)",
-                    style = BansifyTextStyles.Body
-                )
-            },
-            onClick = { onDismiss(); onToggleOffline() }
-        )
-        DropdownMenuItem(
-            text = { Text("Simulate error (Demo)", style = BansifyTextStyles.Body) },
-            onClick = { onDismiss(); onSimulateError() }
         )
     }
 }

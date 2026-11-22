@@ -12,6 +12,9 @@ import com.bansify.ai.data.mock.MessageFeedback
 import com.bansify.ai.data.mock.MessageRole
 import com.bansify.ai.data.mock.MockChats
 import com.bansify.ai.data.mock.ModelItem
+import com.bansify.ai.data.ai.AiChatClient
+import com.bansify.ai.data.ai.AiException
+import com.bansify.ai.data.ai.AiTurn
 import com.bansify.ai.data.mock.UserProfile
 import com.bansify.ai.data.repo.ChatRepository
 import com.bansify.ai.data.repo.ModelRepository
@@ -46,7 +49,8 @@ data class ChatScreenData(
 class ChatViewModel(
     private val chatRepo: ChatRepository,
     private val modelRepo: ModelRepository,
-    private val prefsRepo: UserPreferencesRepository
+    private val prefsRepo: UserPreferencesRepository,
+    private val chatEngine: AiChatClient
 ) : ViewModel() {
 
     private val _isLoadingConversation = MutableStateFlow(false)
@@ -253,18 +257,113 @@ class ChatViewModel(
         modelName: String,
         settings: AppSettings
     ) {
-        when (mode) {
-            ChatMode.IMAGE -> streamMediaReply(convId, prompt, isVideo = false)
-            ChatMode.VIDEO -> streamMediaReply(convId, prompt, isVideo = true)
-            ChatMode.CHAT -> {
-                val replyText = MockChats.generateMockReply(prompt, settings.responseStyle)
-                streamAssistantReply(
-                    conversationId = convId,
-                    fullReply = replyText,
-                    modelName = modelName,
-                    streamingEnabled = settings.streamingEnabled
-                )
+        if (mode != ChatMode.CHAT) {
+            _lastFailedPrompt.value = prompt
+            _inlineError.value = "Image and video generation are not connected yet. Switch to Chat mode."
+            return
+        }
+        val route = modelRepo.resolve(modelRepo.selectedModelId.value)
+        if (route == null) {
+            _lastFailedPrompt.value = prompt
+            _inlineError.value = "No provider key yet. Open Settings, then AI providers, and add one free key."
+            return
+        }
+        val msgId = "msg_a_${System.currentTimeMillis()}"
+        chatRepo.appendMessage(
+            convId,
+            ChatMessage(
+                id = msgId,
+                role = MessageRole.ASSISTANT,
+                content = "",
+                timestampLabel = "Just now",
+                dateGroup = "Today",
+                modelName = route.apiModel,
+                isStreaming = true
+            )
+        )
+        streamReplyInto(convId, msgId, route, prompt)
+    }
+
+    private fun streamReplyInto(
+        convId: String,
+        msgId: String,
+        route: com.bansify.ai.data.repo.ModelRoute,
+        prompt: String
+    ) {
+        val turns = buildTurns(convId)
+        val system = systemPrompt()
+        streamingJob = viewModelScope.launch {
+            _isStreaming.value = true
+            val builder = StringBuilder()
+            try {
+                chatEngine.stream(
+                    provider = route.provider,
+                    model = route.apiModel,
+                    apiKey = route.apiKey,
+                    systemPrompt = system,
+                    turns = turns,
+                    shouldStop = { !isActive }
+                ) { delta ->
+                    builder.append(delta)
+                    val snapshot = builder.toString()
+                    chatRepo.updateMessage(convId, msgId, persist = false) {
+                        it.copy(content = snapshot, isStreaming = true)
+                    }
+                }
+                chatRepo.updateMessage(convId, msgId) { it.copy(isStreaming = false) }
+            } catch (error: AiException) {
+                failMessage(convId, msgId, builder.toString(), error.message ?: "Request failed.", prompt)
+            } catch (error: Exception) {
+                if (isActive) {
+                    failMessage(
+                        convId,
+                        msgId,
+                        builder.toString(),
+                        "Could not reach ${route.provider.name}. ${error.message ?: ""}".trim(),
+                        prompt
+                    )
+                }
+            } finally {
+                _isStreaming.value = false
             }
+        }
+    }
+
+    private fun failMessage(
+        convId: String,
+        msgId: String,
+        partial: String,
+        message: String,
+        prompt: String
+    ) {
+        chatRepo.updateMessage(convId, msgId) {
+            it.copy(
+                content = partial.ifBlank { message },
+                isStreaming = false
+            )
+        }
+        _inlineError.value = message
+        _lastFailedPrompt.value = prompt
+    }
+
+    /** Conversation history in the shape providers expect, oldest first, last 20 turns. */
+    private fun buildTurns(conversationId: String): List<AiTurn> {
+        val conversation = chatRepo.conversations.value.firstOrNull { it.id == conversationId } ?: return emptyList()
+        return conversation.messages
+            .filter { it.generatedMedia == null && it.content.isNotBlank() }
+            .takeLast(20)
+            .map { AiTurn(isUser = it.role == MessageRole.USER, text = it.content) }
+    }
+
+    private fun systemPrompt(): String {
+        val profile = (uiState.value as? UiState.Success)?.data?.userProfile
+        val name = profile?.name?.takeIf { it.isNotBlank() && !profile.isGuest }.orEmpty()
+        val profession = profile?.profession?.orEmpty().orEmpty()
+        return buildString {
+            append("You are Bansify AI, a concise and friendly assistant.")
+            if (name.isNotEmpty()) append(" The user's name is $name.")
+            if (profession.isNotEmpty()) append(" Their profession is $profession.")
+            append(" Reply in the language the user writes in.")
         }
     }
 
@@ -320,6 +419,10 @@ class ChatViewModel(
 
         stopStreaming()
         val mode = currentData.chatMode
+        if (mode != ChatMode.CHAT) {
+            _inlineError.value = "Image and video generation are not connected yet."
+            return
+        }
         if (mode == ChatMode.IMAGE || mode == ChatMode.VIDEO) {
             val isVideo = mode == ChatMode.VIDEO
             val nextMedia = GeneratedMedia(
@@ -353,80 +456,22 @@ class ChatViewModel(
             return
         }
 
-        val reply = MockChats.generateMockReply(userPrompt, currentData.settings.responseStyle)
-        streamIntoExistingMessage(
-            conversationId = convId,
-            messageId = messageId,
-            fullReply = reply,
-            streamingEnabled = currentData.settings.streamingEnabled
-        )
+        val route = modelRepo.resolve(modelRepo.selectedModelId.value)
+        if (route == null) {
+            _inlineError.value = "No provider key yet. Add one in Settings, then AI providers."
+            return
+        }
+        chatRepo.updateMessage(convId, messageId) {
+            it.copy(content = "", isStreaming = true, modelName = route.apiModel)
+        }
+        streamReplyInto(convId, messageId, route, userPrompt)
     }
 
     fun replaySeedStreamingDemo() {
-        val convId = chatRepo.activeConversationId.value ?: return
-        val currentData = (uiState.value as? UiState.Success)?.data ?: return
-        val assistantMsg = currentData.messages.lastOrNull { it.role == MessageRole.ASSISTANT } ?: return
-        stopStreaming()
-        streamIntoExistingMessage(
-            conversationId = convId,
-            messageId = assistantMsg.id,
-            fullReply = assistantMsg.content,
-            streamingEnabled = true
-        )
+        retryLastPrompt()
     }
 
-    private fun streamAssistantReply(
-        conversationId: String,
-        fullReply: String,
-        modelName: String,
-        streamingEnabled: Boolean
-    ) {
-        val msgId = "msg_a_${System.currentTimeMillis()}"
-        val placeholder = ChatMessage(
-            id = msgId,
-            role = MessageRole.ASSISTANT,
-            content = if (streamingEnabled) "" else fullReply,
-            timestampLabel = "Just now",
-            dateGroup = "Today",
-            modelName = modelName,
-            isStreaming = streamingEnabled
-        )
-        chatRepo.appendMessage(conversationId, placeholder)
-        if (!streamingEnabled) return
-        streamIntoExistingMessage(conversationId, msgId, fullReply, streamingEnabled = true)
-    }
 
-    private fun streamIntoExistingMessage(
-        conversationId: String,
-        messageId: String,
-        fullReply: String,
-        streamingEnabled: Boolean
-    ) {
-        streamingJob = viewModelScope.launch {
-            _isStreaming.value = true
-            chatRepo.updateMessage(conversationId, messageId) {
-                it.copy(content = if (streamingEnabled) "" else fullReply, isStreaming = streamingEnabled)
-            }
-            if (streamingEnabled) {
-                delay(600L)
-                val chunks = chunkReply(fullReply)
-                val builder = StringBuilder()
-                for (chunk in chunks) {
-                    if (!isActive) break
-                    builder.append(chunk)
-                    val snapshot = builder.toString()
-                    chatRepo.updateMessage(conversationId, messageId) {
-                        it.copy(content = snapshot, isStreaming = true)
-                    }
-                    delay(40L)
-                }
-            }
-            chatRepo.updateMessage(conversationId, messageId) {
-                it.copy(isStreaming = false)
-            }
-            _isStreaming.value = false
-        }
-    }
 
     fun stopStreaming() {
         streamingJob?.cancel()
@@ -467,15 +512,4 @@ class ChatViewModel(
         }
     }
 
-    private fun chunkReply(text: String): List<String> {
-        val tokens = mutableListOf<String>()
-        var i = 0
-        while (i < text.length) {
-            val step = if (text[i] == '\n') 1 else 6
-            val end = (i + step).coerceAtMost(text.length)
-            tokens += text.substring(i, end)
-            i = end
-        }
-        return tokens
-    }
 }

@@ -170,22 +170,18 @@ fun ChatScreen(
                         }
                         ChatOverflowMenu(
                             expanded = showOverflowMenu,
-                            offlineDemoMode = successData?.settings?.offlineDemoMode == true,
                             onDismiss = { showOverflowMenu = false },
-                            onReplayDemo = { viewModel.replaySeedStreamingDemo() },
                             onClearChat = { viewModel.clearCurrentChat() },
                             onExportMarkdown = {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Demo: Markdown export preview ready")
+                                    snackbarHostState.showSnackbar("Markdown export is coming soon")
                                 }
                             },
                             onShareLink = {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Coming soon: Public chat links")
+                                    snackbarHostState.showSnackbar("Public chat links are coming soon")
                                 }
-                            },
-                            onToggleOffline = { viewModel.toggleOfflineDemo() },
-                            onSimulateError = { viewModel.triggerDemoError() }
+                            }
                         )
                     }
                 )
@@ -278,7 +274,7 @@ fun ChatScreen(
                                 }
                             },
                             onShareMessage = {
-                                scope.launch { snackbarHostState.showSnackbar("Demo: Share sheet preview") }
+                                scope.launch { snackbarHostState.showSnackbar("Sharing is coming soon") }
                             },
                             onCodeCopied = {
                                 scope.launch { snackbarHostState.showSnackbar("Code copied") }
@@ -444,7 +440,7 @@ fun ChatScreen(
             },
             onShare = {
                 longPressedMessage = null
-                scope.launch { snackbarHostState.showSnackbar("Demo: Share preview") }
+                scope.launch { snackbarHostState.showSnackbar("Sharing is coming soon") }
             },
             onSelectText = {
                 selectTextMessage = msg
@@ -456,7 +452,7 @@ fun ChatScreen(
             },
             onReport = {
                 longPressedMessage = null
-                scope.launch { snackbarHostState.showSnackbar("Demo: Report noted locally") }
+                scope.launch { snackbarHostState.showSnackbar("Report saved on this device") }
             },
             onDismiss = { longPressedMessage = null }
         )

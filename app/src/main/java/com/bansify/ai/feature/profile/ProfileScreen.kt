@@ -39,7 +39,8 @@ import com.bansify.ai.feature.settings.SettingsViewModel
 fun ProfileScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
-    onEditPersona: () -> Unit
+    onEditPersona: () -> Unit,
+    onOpenAccount: () -> Unit
 ) {
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
@@ -91,8 +92,12 @@ fun ProfileScreen(
             ) {
                 StatTile("Chats", "${conversations.size}", Modifier.weight(1f))
                 StatTile("Messages", "$totalMessages", Modifier.weight(1f))
-                StatTile("Streak", "7d", Modifier.weight(1f))
-                StatTile("Top model", "Flash-Lite", Modifier.weight(1.2f))
+                StatTile("Pinned", "${conversations.count { it.isPinned }}", Modifier.weight(1f))
+                StatTile(
+                    "Last model",
+                    conversations.firstOrNull()?.modelLabel?.take(12) ?: "Auto",
+                    Modifier.weight(1.2f)
+                )
             }
 
             // Account card
@@ -111,7 +116,7 @@ fun ProfileScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (profile.isGuest) "Guest mode" else "Google connected (Demo)",
+                                text = if (profile.isGuest) "Guest mode" else "Gothwad account",
                                 style = BansifyTextStyles.BodyStrong,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -131,15 +136,15 @@ fun ProfileScreen(
                     Spacer(Modifier.height(Space.md))
                     if (profile.isGuest) {
                         PrimaryButton(
-                            text = "Sign in to save your chats",
-                            onClick = { viewModel.setGuestMode(false) },
+                            text = "Sign in with your Gothwad account",
+                            onClick = onOpenAccount,
                             modifier = Modifier.fillMaxWidth(),
                             testTag = "profile_sign_in_button"
                         )
                     } else {
                         TonalButton(
-                            text = "Sign out (switch to Guest)",
-                            onClick = { viewModel.setGuestMode(true) },
+                            text = "Manage accounts",
+                            onClick = onOpenAccount,
                             modifier = Modifier.fillMaxWidth(),
                             testTag = "profile_sign_out_button"
                         )

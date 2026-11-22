@@ -12,6 +12,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.bansify.ai.core.designsystem.Motion
 import com.bansify.ai.data.repo.ModelRepository
+import com.bansify.ai.feature.account.AccountScreen
+import com.bansify.ai.feature.account.AuthViewModel
+import com.bansify.ai.feature.auth.LoginScreen
+import com.bansify.ai.feature.auth.LoginViewModel
 import com.bansify.ai.feature.chat.ChatScreen
 import com.bansify.ai.feature.chat.ChatViewModel
 import com.bansify.ai.feature.history.HistoryScreen
@@ -29,6 +33,7 @@ import com.bansify.ai.feature.settings.AppearanceScreen
 import com.bansify.ai.feature.settings.DataScreen
 import com.bansify.ai.feature.settings.MemoryScreen
 import com.bansify.ai.feature.settings.PersonaScreen
+import com.bansify.ai.feature.settings.ProvidersScreen
 import com.bansify.ai.feature.settings.SettingsScreen
 import com.bansify.ai.feature.settings.SettingsViewModel
 import com.bansify.ai.feature.splash.SplashScreen
@@ -49,7 +54,9 @@ fun BansifyNavGraph(
     historyViewModel: HistoryViewModel,
     modelsViewModel: ModelsViewModel,
     studioViewModel: StudioViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    authViewModel: AuthViewModel,
+    loginViewModel: LoginViewModel
 ) {
     val providers by modelRepo.providers.collectAsStateWithLifecycle()
     val selectedModelId by modelRepo.selectedModelId.collectAsStateWithLifecycle()
@@ -86,7 +93,10 @@ fun BansifyNavGraph(
 
         composable<Route.OnboardingWelcome> {
             WelcomeScreen(
-                onContinueWithGoogle = { navController.navigate(Route.OnboardingName) },
+                onContinueWithGoogle = {
+                    loginViewModel.reset()
+                    navController.navigate(Route.Login)
+                },
                 onContinueAsGuest = {
                     onboardingViewModel.completeAsGuest { navigateToChatClearingOnboarding() }
                 },
@@ -233,7 +243,9 @@ fun BansifyNavGraph(
                 onOpenModels = { navController.navigate(Route.Models) },
                 onOpenData = { navController.navigate(Route.SettingsData) },
                 onOpenAbout = { navController.navigate(Route.SettingsAbout) },
-                onOpenProfile = { navController.navigate(Route.Profile) }
+                onOpenProfile = { navController.navigate(Route.Profile) },
+                onOpenProviders = { navController.navigate(Route.Providers) },
+                onOpenAccount = { navController.navigate(Route.Account) }
             )
         }
 
@@ -275,7 +287,40 @@ fun BansifyNavGraph(
             ProfileScreen(
                 viewModel = settingsViewModel,
                 onBack = { navController.popBackStack() },
-                onEditPersona = { navController.navigate(Route.SettingsPersona) }
+                onEditPersona = { navController.navigate(Route.SettingsPersona) },
+                onOpenAccount = { navController.navigate(Route.Account) }
+            )
+        }
+
+        composable<Route.Login> {
+            LoginScreen(
+                viewModel = loginViewModel,
+                onSignedIn = {
+                    loginViewModel.reset()
+                    navigateToChatClearingOnboarding()
+                },
+                onContinueAsGuest = {
+                    onboardingViewModel.completeAsGuest { navigateToChatClearingOnboarding() }
+                }
+            )
+        }
+
+        composable<Route.Account> {
+            AccountScreen(
+                viewModel = authViewModel,
+                onBack = { navController.popBackStack() },
+                onAddAccount = {
+                    loginViewModel.reset()
+                    navController.navigate(Route.Login)
+                },
+                onOpenProviders = { navController.navigate(Route.Providers) }
+            )
+        }
+
+        composable<Route.Providers> {
+            ProvidersScreen(
+                modelRepo = modelRepo,
+                onBack = { navController.popBackStack() }
             )
         }
     }

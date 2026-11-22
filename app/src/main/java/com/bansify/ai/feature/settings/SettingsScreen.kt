@@ -63,7 +63,9 @@ fun SettingsScreen(
     onOpenModels: () -> Unit,
     onOpenData: () -> Unit,
     onOpenAbout: () -> Unit,
-    onOpenProfile: () -> Unit
+    onOpenProfile: () -> Unit,
+    onOpenProviders: () -> Unit,
+    onOpenAccount: () -> Unit
 ) {
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
     val settings by viewModel.appSettings.collectAsStateWithLifecycle()
@@ -104,8 +106,8 @@ fun SettingsScreen(
                             )
                         }
                         BansifyTextButton(
-                            text = if (profile.isGuest) "Sign in" else "Sign out",
-                            onClick = { viewModel.setGuestMode(!profile.isGuest) },
+                            text = if (profile.isGuest) "Sign in" else "Accounts",
+                            onClick = onOpenAccount,
                             testTag = "settings_auth_toggle"
                         )
                     }
@@ -180,10 +182,10 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                     SettingsNavRow(
                         icon = Icons.Rounded.Tune,
-                        title = "Provider health list",
-                        subtitle = "15 providers · live status mock",
+                        title = "AI providers & keys",
+                        subtitle = "Free providers · add your own key",
                         tag = "settings_provider_health_row",
-                        onClick = onOpenModels
+                        onClick = onOpenProviders
                     )
                 }
             }

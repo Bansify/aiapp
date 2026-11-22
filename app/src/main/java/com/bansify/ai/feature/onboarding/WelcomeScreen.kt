@@ -155,16 +155,16 @@ fun WelcomeScreen(
             title = topic
         ) {
             Text(
-                text = "Demo Prototype Notice — Bansify AI",
+                text = topic,
                 style = BansifyTextStyles.BodyStrong,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(Space.xs))
             Text(
                 text = if (topic == "Terms of Service") {
-                    "This is an offline clickable UI prototype. No personal data is sent to any external server. Preferences are stored locally on your device."
+                    "Bansify AI sends the messages you type to the AI provider you choose, using the API key you saved on this device. Chat history stays on this device. Sign-in uses your Gothwad account."
                 } else {
-                    "Your privacy comes first. In prototype mode there are zero network calls, zero ads, and zero analytics. You can export or delete your data at any time."
+                    "Your API keys and chat history stay on this device. Only the message you send goes to the provider you selected. There are no ads and no analytics. You can delete all chats from Settings at any time."
                 },
                 style = BansifyTextStyles.Body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
