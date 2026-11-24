@@ -86,7 +86,7 @@ class SettingsViewModel(
 
     fun deleteAllUserData() {
         viewModelScope.launch {
-            chatRepo.deleteAllConversations()
+            chatRepo.deleteAllConversationsEverywhere()
             prefsRepo.resetAllData()
         }
     }

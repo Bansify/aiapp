@@ -9,14 +9,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.toRoute
 import com.bansify.ai.core.designsystem.Motion
 import com.bansify.ai.data.repo.ModelRepository
 import com.bansify.ai.feature.chat.ChatScreen
 import com.bansify.ai.feature.chat.ChatViewModel
 import com.bansify.ai.feature.history.HistoryScreen
 import com.bansify.ai.feature.history.HistoryViewModel
-import com.bansify.ai.feature.models.ModelsScreen
 import com.bansify.ai.feature.models.ModelsViewModel
 import com.bansify.ai.feature.onboarding.GoalsScreen
 import com.bansify.ai.feature.onboarding.NameScreen
@@ -31,13 +29,9 @@ import com.bansify.ai.feature.settings.MemoryScreen
 import com.bansify.ai.feature.settings.PersonaScreen
 import com.bansify.ai.feature.settings.SettingsScreen
 import com.bansify.ai.feature.settings.SettingsViewModel
+import com.bansify.ai.feature.comingsoon.ComingSoonScreen
 import com.bansify.ai.feature.splash.SplashScreen
-import com.bansify.ai.feature.studio.FileViewerScreen
-import com.bansify.ai.feature.studio.RepoScreen
-import com.bansify.ai.feature.studio.StudioHomeScreen
 import com.bansify.ai.feature.studio.StudioViewModel
-import com.bansify.ai.feature.workspace.LibraryScreen
-import com.bansify.ai.feature.workspace.ScheduledScreen
 
 @Composable
 fun BansifyNavGraph(
@@ -52,8 +46,6 @@ fun BansifyNavGraph(
     settingsViewModel: SettingsViewModel
 ) {
     val providers by modelRepo.providers.collectAsStateWithLifecycle()
-    val selectedModelId by modelRepo.selectedModelId.collectAsStateWithLifecycle()
-    val selectedModel = modelRepo.findModel(selectedModelId)
     val studioProjects by studioViewModel.repos.collectAsStateWithLifecycle()
 
     fun navigateToChatClearingOnboarding() {
@@ -173,53 +165,59 @@ fun BansifyNavGraph(
             )
         }
 
+        // ---- Coming soon ---------------------------------------------------
+        // Chat is live; every other surface is honest about being unfinished
+        // instead of showing a mock screen that does nothing.
+
         composable<Route.Library> {
-            LibraryScreen(onBack = { navController.popBackStack() })
+            ComingSoonScreen(
+                title = "Library",
+                subtitle = "Saved prompts, files aur projects — next release me aayenge.",
+                onBack = { navController.popBackStack() },
+                actionLabel = "Chat pe wapas jao",
+                onAction = { navController.popBackStack() },
+            )
         }
 
         composable<Route.Scheduled> {
-            ScheduledScreen(onBack = { navController.popBackStack() })
+            ComingSoonScreen(
+                title = "Scheduled",
+                subtitle = "Queued tasks aur reminders next release me.",
+                onBack = { navController.popBackStack() },
+                actionLabel = "Chat pe wapas jao",
+                onAction = { navController.popBackStack() },
+            )
         }
 
         composable<Route.Models> {
-            ModelsScreen(
-                viewModel = modelsViewModel,
-                onBack = { navController.popBackStack() }
+            ComingSoonScreen(
+                title = "Model catalog",
+                subtitle = "Sarvam aur OpenRouter ke saare models, limits ke saath — next release me.",
+                onBack = { navController.popBackStack() },
             )
         }
 
         composable<Route.StudioHome> {
-            StudioHomeScreen(
-                viewModel = studioViewModel,
+            ComingSoonScreen(
+                title = "Studio",
+                subtitle = "Repo browse, code preview aur zip upload — next release me.",
                 onBack = { navController.popBackStack() },
-                onOpenRepo = { repoId -> navController.navigate(Route.StudioRepo(repoId)) }
             )
         }
 
-        composable<Route.StudioRepo> { backStackEntry ->
-            val args = backStackEntry.toRoute<Route.StudioRepo>()
-            RepoScreen(
-                repoId = args.repoId,
-                viewModel = studioViewModel,
-                providers = providers,
-                autoModel = modelRepo.autoModel,
-                selectedModel = selectedModel,
-                onSelectModel = { modelRepo.selectModel(it) },
-                onNavigateModels = { navController.navigate(Route.Models) },
+        composable<Route.StudioRepo> {
+            ComingSoonScreen(
+                title = "Studio · Repo",
+                subtitle = "Repo browsing next release me aayega.",
                 onBack = { navController.popBackStack() },
-                onOpenFile = { path ->
-                    navController.navigate(Route.StudioFileViewer(args.repoId, path))
-                }
             )
         }
 
-        composable<Route.StudioFileViewer> { backStackEntry ->
-            val args = backStackEntry.toRoute<Route.StudioFileViewer>()
-            FileViewerScreen(
-                repoId = args.repoId,
-                filePath = args.filePath,
-                viewModel = studioViewModel,
-                onBack = { navController.popBackStack() }
+        composable<Route.StudioFileViewer> {
+            ComingSoonScreen(
+                title = "Studio · File",
+                subtitle = "File viewer next release me aayega.",
+                onBack = { navController.popBackStack() },
             )
         }
 

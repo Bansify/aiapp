@@ -19,6 +19,11 @@ android {
         targetSdk = 35
         versionCode = resolvedVersionCode
         versionName = resolvedVersionName
+
+        // Custom-scheme fallback for the Bansify Accounts OAuth callback
+        // (`com.bansify.ai:/oauth/callback`). The verified HTTPS App Link
+        // (https://ai.bansify.com/oauth/callback) is the production redirect.
+        manifestPlaceholders["gothwadRedirectScheme"] = "com.bansify.ai"
     }
 
     buildTypes {
@@ -52,6 +57,12 @@ android {
 }
 
 dependencies {
+    // Shared Bansify Accounts SDK (:core + :ui): the same sign-in surface, account
+    // centre and encrypted token store as every other Bansify app. One account
+    // signs you in on ai.bansify.com and in this app.
+    implementation("com.github.Bansify.accountsapp:core:v1.0.11")
+    implementation("com.github.Bansify.accountsapp:ui:v1.0.11")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -70,4 +81,10 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+
+    // Bansify Accounts OAuth (Custom Tabs) and the Bansify AI Worker client.
+    implementation(libs.androidx.browser)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.tink.android)
+    implementation(libs.okhttp)
 }

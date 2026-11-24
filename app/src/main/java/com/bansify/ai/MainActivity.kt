@@ -12,8 +12,12 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
+import com.bansify.accounts.core.AccountState
+import com.bansify.accounts.core.AuthFailure
+import com.bansify.ai.auth.AiAuth
 import com.bansify.ai.core.designsystem.BansifyTheme
 import com.bansify.ai.core.designsystem.ThemeMode
+import com.bansify.ai.feature.auth.SignInScreen
 import com.bansify.ai.data.mock.AppSettings
 import com.bansify.ai.data.repo.ChatRepository
 import com.bansify.ai.data.repo.ModelRepository
@@ -28,6 +32,16 @@ import com.bansify.ai.feature.studio.StudioViewModel
 import com.bansify.ai.nav.BansifyNavGraph
 import kotlinx.coroutines.flow.map
 
+/** Turns an SDK sign-in failure into something a person can read. */
+private fun failureMessage(failure: AuthFailure): String = when (failure) {
+    AuthFailure.BrowserUnavailable -> "Koi browser nahi mila — Chrome install karke try karo."
+    AuthFailure.InvalidCallback -> "Sign-in link valid nahi tha. Dobara try karo."
+    AuthFailure.LoginCancelled -> "Sign-in cancel ho gaya."
+    AuthFailure.SessionExpired -> "Session expire ho gaya — dobara sign in karo."
+    AuthFailure.Unavailable -> "Accounts service abhi reachable nahi hai."
+    AuthFailure.StorageUnavailable -> "Device pe secure storage available nahi hai."
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -36,7 +50,8 @@ class MainActivity : ComponentActivity() {
 
         val prefsRepo = UserPreferencesRepository(applicationContext)
         val modelRepo = ModelRepository()
-        val chatRepo = ChatRepository()
+        val auth = AiAuth()
+        val chatRepo = ChatRepository(auth)
         val studioRepo = StudioRepository()
 
         // TODO(pawan): Replace manual container with Hilt when real backend/network layers are added.
@@ -51,6 +66,9 @@ class MainActivity : ComponentActivity() {
             val settings by prefsRepo.appSettings.collectAsStateWithLifecycle(initialValue = AppSettings())
             val isOnboardedFlow = remember { prefsRepo.userProfile.map { it.onboardingCompleted } }
             val isOnboarded by isOnboardedFlow.collectAsStateWithLifecycle(initialValue = null)
+
+            val authState by auth.state.collectAsStateWithLifecycle()
+            val authFailure by auth.failure.collectAsStateWithLifecycle()
 
             val systemDark = isSystemInDarkTheme()
             val isDark = when (settings.themeMode) {
@@ -70,18 +88,46 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = settings.dynamicColor,
                 fontScaleMultiplier = settings.fontScale
             ) {
-                val navController = rememberNavController()
-                BansifyNavGraph(
-                    navController = navController,
-                    isOnboarded = isOnboarded,
-                    modelRepo = modelRepo,
-                    onboardingViewModel = onboardingViewModel,
-                    chatViewModel = chatViewModel,
-                    historyViewModel = historyViewModel,
-                    modelsViewModel = modelsViewModel,
-                    studioViewModel = studioViewModel,
-                    settingsViewModel = settingsViewModel
-                )
+                // Chat needs a Bansify Account: history lives on the account, not on
+                // the device. Everything before sign-in is the shared Accounts UI.
+                // The view models are built once in onCreate, before sign-in, so the
+                // history fetch has to be re-triggered the moment a session appears.
+                LaunchedEffect(authState) {
+                    if (authState is AccountState.SignedIn) chatViewModel.refreshFromServer()
+                }
+
+                when (authState) {
+                    is AccountState.SignedIn -> {
+                        val navController = rememberNavController()
+                        BansifyNavGraph(
+                            navController = navController,
+                            isOnboarded = isOnboarded,
+                            modelRepo = modelRepo,
+                            onboardingViewModel = onboardingViewModel,
+                            chatViewModel = chatViewModel,
+                            historyViewModel = historyViewModel,
+                            modelsViewModel = modelsViewModel,
+                            studioViewModel = studioViewModel,
+                            settingsViewModel = settingsViewModel
+                        )
+                    }
+
+                    is AccountState.SignedOut, is AccountState.StorageCorrupted -> SignInScreen(
+                        onSignIn = { auth.signIn(this@MainActivity) },
+                        onSignInWithDifferentAccount = { auth.signIn(this@MainActivity, chooseAccount = true) },
+                        isInitializing = false,
+                        errorMessage = authFailure?.let { failureMessage(it) }
+                            ?: (authState as? AccountState.StorageCorrupted)?.let {
+                                "Saved session could not be read. Sign in again."
+                            }
+                    )
+
+                    AccountState.Initializing -> SignInScreen(
+                        onSignIn = {},
+                        onSignInWithDifferentAccount = {},
+                        isInitializing = true,
+                    )
+                }
             }
         }
     }

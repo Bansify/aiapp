@@ -12,7 +12,9 @@ import com.bansify.ai.data.mock.MessageFeedback
 import com.bansify.ai.data.mock.MessageRole
 import com.bansify.ai.data.mock.MockChats
 import com.bansify.ai.data.mock.ModelItem
+import com.bansify.ai.data.mock.ResponseStyle
 import com.bansify.ai.data.mock.UserProfile
+import com.bansify.ai.data.remote.AiApiException
 import com.bansify.ai.data.repo.ChatRepository
 import com.bansify.ai.data.repo.ModelRepository
 import com.bansify.ai.data.repo.UserPreferencesRepository
@@ -189,6 +191,11 @@ class ChatViewModel(
         _draftText.value = if (current.isBlank()) transcript else "$current $transcript"
     }
 
+    /** Pulls the account's history from the worker (called once, after sign-in). */
+    fun refreshFromServer() {
+        viewModelScope.launch { chatRepo.loadConversations() }
+    }
+
     fun toggleMessageActions(messageId: String) {
         _revealedActionsId.update { if (it == messageId) null else messageId }
     }
@@ -256,15 +263,78 @@ class ChatViewModel(
         when (mode) {
             ChatMode.IMAGE -> streamMediaReply(convId, prompt, isVideo = false)
             ChatMode.VIDEO -> streamMediaReply(convId, prompt, isVideo = true)
-            ChatMode.CHAT -> {
-                val replyText = MockChats.generateMockReply(prompt, settings.responseStyle)
-                streamAssistantReply(
-                    conversationId = convId,
-                    fullReply = replyText,
-                    modelName = modelName,
-                    streamingEnabled = settings.streamingEnabled
-                )
+            ChatMode.CHAT -> streamNetworkReply(convId, prompt, modelName, settings)
+        }
+    }
+
+    /**
+     * Real reply: streamed from the Bansify AI Worker (Sarvam first, then the
+     * fallback providers). The worker also stores both turns, so this thread is
+     * the same one the web app shows.
+     */
+    private fun streamNetworkReply(
+        conversationId: String,
+        prompt: String,
+        modelName: String,
+        settings: AppSettings
+    ) {
+        val msgId = "msg_a_${System.currentTimeMillis()}"
+        val placeholder = ChatMessage(
+            id = msgId,
+            role = MessageRole.ASSISTANT,
+            content = "",
+            timestampLabel = "Just now",
+            dateGroup = "Today",
+            modelName = modelName,
+            isStreaming = true
+        )
+        chatRepo.appendMessage(conversationId, placeholder)
+
+        streamingJob = viewModelScope.launch {
+            _isStreaming.value = true
+            val builder = StringBuilder()
+
+            val result = chatRepo.streamAssistantReply(
+                conversationId = conversationId,
+                prompt = prompt,
+                modelId = modelRepo.selectedModelId.value,
+                style = when (settings.responseStyle) {
+                    ResponseStyle.SHORT -> "concise"
+                    ResponseStyle.BALANCED -> null
+                    ResponseStyle.DETAILED -> "detailed"
+                }
+            ) { delta ->
+                builder.append(delta)
+                val snapshot = builder.toString()
+                chatRepo.updateMessage(conversationId, msgId) {
+                    it.copy(content = snapshot, isStreaming = true)
+                }
             }
+
+            result.fold(
+                onSuccess = {
+                    chatRepo.updateMessage(conversationId, msgId) {
+                        it.copy(
+                            content = builder.toString().ifBlank { "(empty reply)" },
+                            isStreaming = false
+                        )
+                    }
+                    _inlineError.value = null
+                },
+                onFailure = { error ->
+                    chatRepo.updateMessage(conversationId, msgId) {
+                        it.copy(content = "", isStreaming = false)
+                    }
+                    _lastFailedPrompt.value = prompt
+                    _inlineError.value = when ((error as? AiApiException)?.code) {
+                        "auth_required" -> "Bansify Account se sign in karo, phir Retry dabao."
+                        "quota_exhausted" -> "Aaj ka quota khatam ho gaya — kal reset hoga."
+                        "no_provider" -> "Abhi koi model jawab nahi de pa raha. Thodi der baad try karo."
+                        else -> error.message ?: "Couldn't get a response."
+                    }
+                }
+            )
+            _isStreaming.value = false
         }
     }
 

@@ -1,21 +1,28 @@
 # Bansify AI
 
-Bansify AI — a calm, roomy Android AI chat and developer Studio **UI prototype**,
-with Hinglish-flavoured UX, a multi-provider model catalog, and mock streaming.
+Bansify AI — a calm, roomy Android AI chat app with Hinglish-flavoured UX.
 Built with Kotlin + Jetpack Compose (Material 3).
 
-Originally prototyped in Google AI Studio, now maintained in this repository.
+**Chat is live.** Replies stream from the Bansify AI Worker
+(`https://ai.bansify.com/api`), which routes to Sarvam first and falls back to
+OpenRouter/Groq/Gemini. Sign-in is the shared Bansify Accounts flow, so the same
+account works on ai.bansify.com and in this app, and chat history lives on the
+account (worker D1), not on the device.
 
-All data is **mock data** (`data/mock/`) — there is no backend wired up yet.
+**Everything except chat shows "Coming soon"** — Studio, Workspace (Library,
+Scheduled) and the model catalog are stubbed on purpose instead of shipping mock
+screens that look finished.
 
 ## Screens & features
 
+- **Sign-in** — Bansify Accounts (shared `accountsapp` SDK, PKCE via Custom Tabs)
+
 - **Onboarding** — welcome, name, profession, goals
-- **Chat** — composer with mock streaming, markdown-lite rendering, model picker sheet, add-to-chat sheet
+- **Chat** — composer, real streamed replies from the worker, markdown-lite rendering, model picker sheet, add-to-chat sheet
 - **History** — past conversations
-- **Models** — multi-provider model catalog (grouped by provider)
-- **Studio** — repo browsing, file viewer with code/preview panes, integrations sheet, zip upload
-- **Workspace** — library, scheduled items
+- **Models** — coming soon (the in-chat model picker is live)
+- **Studio** — coming soon
+- **Workspace** — coming soon
 - **Drawer** — navigation drawer
 - **Settings** — appearance, memory, persona, data, about
 - **Splash**
