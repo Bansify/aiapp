@@ -191,9 +191,14 @@ class ChatViewModel(
         _draftText.value = if (current.isBlank()) transcript else "$current $transcript"
     }
 
-    /** Pulls the account's history from the worker (called once, after sign-in). */
+    /** Pulls the model catalog and the account's history (called after sign-in). */
     fun refreshFromServer() {
-        viewModelScope.launch { chatRepo.loadConversations() }
+        viewModelScope.launch {
+            modelRepo.loadFromWorker()
+            val saved = (uiState.value as? UiState.Success)?.data?.settings?.defaultModelId
+            if (!saved.isNullOrBlank()) modelRepo.selectModel(saved)
+            chatRepo.loadConversations()
+        }
     }
 
     fun toggleMessageActions(messageId: String) {
@@ -206,6 +211,9 @@ class ChatViewModel(
 
     fun selectModel(modelId: String) {
         modelRepo.selectModel(modelId)
+        // Remembered across launches, and shared with the web app through the
+        // same account when the user next opens it.
+        viewModelScope.launch { prefsRepo.setDefaultModelId(modelId) }
     }
 
     fun sendPrompt(overridePrompt: String? = null) {
