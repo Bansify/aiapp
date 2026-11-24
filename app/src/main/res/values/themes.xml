@@ -2,6 +2,9 @@
 <resources>
     <style name="Theme.BansifyAI" parent="android:Theme.Material.Light.NoActionBar" />
 
+    <!-- Invisible theme for the Bansify Accounts OAuth callback trampoline. -->
+    <style name="Theme.BansifyAI.Transparent" parent="android:Theme.Translucent.NoTitleBar" />
+
     <style name="Theme.BansifyAI.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#10172B</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>

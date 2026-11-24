@@ -177,10 +177,15 @@ class UserPreferencesRepository(context: Context) {
         _memoryFacts.value = emptyList()
     }
 
+    /**
+     * Deletes everything this app stored for the account.
+     *
+     * `clear()` removes every key, not just `about`: a "Delete all data" button
+     * that leaves the name, email, profession, goals and the onboarding flag
+     * behind is a privacy bug, not a UI detail.
+     */
     suspend fun resetAllData() {
         _memoryFacts.value = emptyList()
-        dataStore.edit { prefs ->
-            prefs[Keys.ABOUT] = ""
-        }
+        dataStore.edit { prefs -> prefs.clear() }
     }
 }
