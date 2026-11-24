@@ -49,8 +49,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val prefsRepo = UserPreferencesRepository(applicationContext)
-        val modelRepo = ModelRepository()
         val auth = AiAuth()
+        val modelRepo = ModelRepository(auth)
         val chatRepo = ChatRepository(auth)
         val studioRepo = StudioRepository()
 

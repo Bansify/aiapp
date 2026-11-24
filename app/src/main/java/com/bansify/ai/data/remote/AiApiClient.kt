@@ -74,6 +74,20 @@ private data class ChatRequestBody(
 private data class SseDelta(val delta: String? = null)
 
 @Serializable
+data class RemoteModel(
+    val id: String,
+    @SerialName("provider_id") val providerId: String,
+    @SerialName("model_id") val modelId: String,
+    @SerialName("display_name") val displayName: String,
+    @SerialName("context_len") val contextLen: Long = 0,
+    @SerialName("speed_class") val speedClass: String = "fast",
+    @SerialName("is_free") val isFree: Int = 1,
+)
+
+@Serializable
+private data class ModelsResponse(val models: List<RemoteModel> = emptyList())
+
+@Serializable
 data class AiUser(
     val id: String = "",
     val username: String = "",
@@ -127,6 +141,20 @@ class AiApiClient(
         val body = response.body?.string().orEmpty()
         val parsed = json.decodeFromString<MeResponse>(body)
         parsed.user ?: throw AiApiException(401, "auth_required", "Not signed in to Bansify AI")
+    }
+
+    /**
+     * The public model catalog. No bearer token is attached: `/v1/models` is
+     * readable without a session, so the picker fills in before sign-in.
+     */
+    suspend fun fetchModels(): Result<List<RemoteModel>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val request = requestBuilder("/v1/models").get().build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw toApiException(response)
+                json.decodeFromString<ModelsResponse>(response.body?.string().orEmpty()).models
+            }
+        }
     }
 
     // --- Conversations -------------------------------------------------------
