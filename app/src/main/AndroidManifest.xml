@@ -48,7 +48,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <!-- Scheme-only: `com.bansify.ai:/oauth/callback` keeps `oauth` in the path. -->
-                <data android:scheme="${gothwadRedirectScheme}" />
+                <data android:scheme="${bansifyRedirectScheme}" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
