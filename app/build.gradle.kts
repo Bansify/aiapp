@@ -23,7 +23,7 @@ android {
         // Custom-scheme fallback for the Bansify Accounts OAuth callback
         // (`com.bansify.ai:/oauth/callback`). The verified HTTPS App Link
         // (https://ai.bansify.com/oauth/callback) is the production redirect.
-        manifestPlaceholders["gothwadRedirectScheme"] = "com.bansify.ai"
+        manifestPlaceholders["bansifyRedirectScheme"] = "com.bansify.ai"
     }
 
     buildTypes {
